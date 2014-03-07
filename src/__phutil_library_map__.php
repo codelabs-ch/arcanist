@@ -10,6 +10,7 @@ phutil_register_library_map(array(
   '__library_version__' => 2,
   'class' =>
   array(
+    'AhvenTestEngine' => 'unit/engine/AhvenTestEngine.php',
     'ArcanistAliasWorkflow' => 'workflow/ArcanistAliasWorkflow.php',
     'ArcanistAmendWorkflow' => 'workflow/ArcanistAmendWorkflow.php',
     'ArcanistAnoidWorkflow' => 'workflow/ArcanistAnoidWorkflow.php',
@@ -187,6 +188,7 @@ phutil_register_library_map(array(
   ),
   'xmap' =>
   array(
+    'AhvenTestEngine' => 'ArcanistBaseUnitTestEngine',
     'ArcanistAliasWorkflow' => 'ArcanistBaseWorkflow',
     'ArcanistAmendWorkflow' => 'ArcanistBaseWorkflow',
     'ArcanistAnoidWorkflow' => 'ArcanistBaseWorkflow',

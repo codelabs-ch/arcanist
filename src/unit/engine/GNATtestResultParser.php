@@ -1,0 +1,105 @@
+<?php
+
+/**
+ * GNATtest Result Parser
+ */
+final class GNATtestResultParser {
+
+  /**
+   * Parse test results from provided input and return an array
+   * of ArcanistUnitTestResult.
+   *
+   * @param string $test_results String containing test results
+   *
+   * @return array ArcanistUnitTestResult
+   */
+  public function parseTestResults($test_results) {
+    if (!strlen($test_results)) {
+      throw new Exception(
+        'test_results argument to parseTestResults must not be empty');
+    }
+
+    $results = array();
+    foreach(preg_split('/((\r?\n)|(\r\n?))/', $test_results) as $line) {
+      if (strpos($line, 'PASSED')) {
+        $results[] = $this->createArcanistResult(
+          $this->getTestname($line), ArcanistUnitTestResult::RESULT_PASS, NULL);
+        continue;
+      }
+      if (strpos($line, 'FAILED')) {
+        $results[] = $this->createArcanistResult(
+          $this->getTestname($line), ArcanistUnitTestResult::RESULT_FAIL,
+          $this->getReason(false, $line));
+        continue;
+      }
+      if (strpos($line, 'CRASHED')) {
+        $results[] = $this->createArcanistResult(
+          $this->getTestname($line), ArcanistUnitTestResult::RESULT_BROKEN,
+          $this->getReason(true, $line));
+        continue;
+      }
+    }
+
+    if (!count($results)) {
+      throw new Exception('No test results found');
+    }
+    return $results;
+  }
+
+  /**
+   * Create ArcanistResult from given parameters.
+   *
+   * @param string        $name    Name of the test
+   * @param const string  $status  Status of the test
+   * @param string        $data    Optional user data (reason)
+   *
+   * @return ArcanistUnitTestResult
+   */
+  private function createArcanistResult($name, $status, $data) {
+    $result = new ArcanistUnitTestResult();
+    $result->setResult($status);
+    $result->setName($name);
+    if (strlen($data)) {
+      $result->setUserData($data."\n");
+    }
+    return $result;
+  }
+
+  /**
+   * Extract the testname from the given input string. Raise exception if
+   * the testname could not be found.
+   *
+   * @param string $str Input line to parse
+   *
+   * @return string
+   */
+  private function getTestname($str) {
+    if (preg_match('/.*.ad[s|b]:[0-9]+:[0-9]/', $str, $testname)) {
+      return $testname[0];
+    }
+    throw new Exception('getTestname failed for "'.$str.'"');
+  }
+
+  /**
+   * Extract the reason for a failing/crashing test from the given input string.
+   * Raise exception if the reason could not be extracted.
+   *
+   * @param boolean $crashed Whether the test crashed
+   * @param string  $str     Input line to parse
+   *
+   * @return string
+   */
+  private function getReason($crashed, $str) {
+    $pattern = 'FAILED';
+
+    if ($crashed) {
+      $pattern = 'CRASHED';
+    }
+
+    $result = substr($str, strpos($str, $pattern) + strlen($pattern) + 2);
+    if (!strlen($result)) {
+      throw new Exception('getReason failed for "'.$str.'"');
+    }
+    return $result;
+  }
+}

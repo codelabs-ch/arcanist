@@ -62,6 +62,12 @@ final class GNATtestResultParser {
     if (strlen($data)) {
       $result->setUserData($data."\n");
     }
+
+    /* Store body filename in extra data. */
+    $data = array();
+    $data[0] = $this->getFilepath($name);
+    $result->setExtraData($data);
+
     return $result;
   }
 
@@ -78,6 +84,31 @@ final class GNATtestResultParser {
       return $testname[0];
     }
     throw new Exception('getTestname failed for "'.$str.'"');
+  }
+
+  /**
+   * Return file path of source body for given testname. Raise exception if the
+   * filename could not be extracted and return empty string if the source body
+   * is not in the src directory.
+   *
+   * @param string $name Name of a test
+   *
+   * @return string
+   */
+  private function getFilepath($name) {
+    if (preg_match('/^(.*?).ads/', $name, $filename)) {
+      $filename = str_replace('.ads', '.adb', $filename[0]);
+
+      /* Only consider files in src directory */
+      $bodies = glob('tools/*/src/'.$filename);
+      if (empty($bodies) === false) {
+        return $bodies[0];
+      } else {
+        return "";
+      }
+
+    }
+    throw new Exception('getFilepath failed for "'.$name.'"');
   }
 
   /**

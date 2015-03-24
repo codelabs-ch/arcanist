@@ -9,7 +9,7 @@ final class GNATtestResultParser {
    * Parse test results from provided input and return an array
    * of ArcanistUnitTestResult.
    *
-   * @param string $test_results String containing test results
+   * @param string  $test_results  String containing test results
    *
    * @return array ArcanistUnitTestResult
    */
@@ -23,19 +23,20 @@ final class GNATtestResultParser {
     foreach(preg_split('/((\r?\n)|(\r\n?))/', $test_results) as $line) {
       if (strpos($line, 'PASSED')) {
         $results[] = $this->createArcanistResult(
-          $this->getTestname($line), ArcanistUnitTestResult::RESULT_PASS, NULL);
+          $this->getTestname($line), ArcanistUnitTestResult::RESULT_PASS,
+          NULL, $this->getDuration($line));
         continue;
       }
       if (strpos($line, 'FAILED')) {
         $results[] = $this->createArcanistResult(
           $this->getTestname($line), ArcanistUnitTestResult::RESULT_FAIL,
-          $this->getReason(false, $line));
+          $this->getReason(false, $line), NULL);
         continue;
       }
       if (strpos($line, 'CRASHED')) {
         $results[] = $this->createArcanistResult(
           $this->getTestname($line), ArcanistUnitTestResult::RESULT_BROKEN,
-          $this->getReason(true, $line));
+          $this->getReason(true, $line), NULL);
         continue;
       }
     }
@@ -49,18 +50,22 @@ final class GNATtestResultParser {
   /**
    * Create ArcanistResult from given parameters.
    *
-   * @param string        $name    Name of the test
-   * @param const string  $status  Status of the test
-   * @param string        $data    Optional user data (reason)
+   * @param string  $name      Name of the test
+   * @param string  $status    Status of the test
+   * @param string  $data      Optional user data (reason)
+   * @param string  $duration  Optional test duration in seconds
    *
    * @return ArcanistUnitTestResult
    */
-  private function createArcanistResult($name, $status, $data) {
+  private function createArcanistResult($name, $status, $data, $duration) {
     $result = new ArcanistUnitTestResult();
     $result->setResult($status);
     $result->setName($name);
     if (strlen($data)) {
       $result->setUserData($data."\n");
+    }
+    if (strlen($duration)) {
+      $result->setDuration(floatval($duration));
     }
 
     /* Store body filename in extra data. */
@@ -75,7 +80,7 @@ final class GNATtestResultParser {
    * Extract the testname from the given input string. Raise exception if
    * the testname could not be found.
    *
-   * @param string $str Input line to parse
+   * @param string  $str  Input line to parse
    *
    * @return string
    */
@@ -91,7 +96,7 @@ final class GNATtestResultParser {
    * filename could not be extracted and return empty string if the source body
    * is not in the src directory.
    *
-   * @param string $name Name of a test
+   * @param string  $name  Name of a test
    *
    * @return string
    */
@@ -112,11 +117,25 @@ final class GNATtestResultParser {
   }
 
   /**
+   * Extract test duration from the given input string.
+   * Raise exception if the duration could not be extracted.
+   *
+   * @param string  $str  Input line to parse
+   *
+   * @return string
+   */
+  private function getDuration($str) {
+    if (preg_match('/[0-9]+\.[0-9]+/', $str, $duration)) {
+      return $duration[0];
+    }
+    throw new Exception('getDuration failed for "'.$str.'"');
+  }
+  /**
    * Extract the reason for a failing/crashing test from the given input string.
    * Raise exception if the reason could not be extracted.
    *
-   * @param boolean $crashed Whether the test crashed
-   * @param string  $str     Input line to parse
+   * @param boolean  $crashed  Whether the test crashed
+   * @param string   $str      Input line to parse
    *
    * @return string
    */

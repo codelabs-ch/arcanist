@@ -26,7 +26,7 @@ final class PytestTestEngine extends ArcanistUnitTestEngine {
         $stderr);
     }
 
-    $future = new ExecFuture('coverage xml -o %s', $cover_tmp);
+    $future = new ExecFuture('python-coverage xml -o %s', $cover_tmp);
     $future->setCWD($this->projectRoot);
     $future->resolvex();
 
@@ -40,7 +40,7 @@ final class PytestTestEngine extends ArcanistUnitTestEngine {
 
     if ($this->getEnableCoverage() !== false) {
       $cmd_line = csprintf(
-        'coverage run --source %s -m %C',
+        'python-coverage run --source %s -m %C',
         $this->projectRoot,
         $cmd_line);
     }

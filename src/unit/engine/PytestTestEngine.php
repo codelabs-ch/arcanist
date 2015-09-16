@@ -41,7 +41,7 @@ final class PytestTestEngine extends ArcanistUnitTestEngine {
     if ($this->getEnableCoverage() !== false) {
       $cmd_line = csprintf(
         'python-coverage run --source %s -m %C',
-        $this->projectRoot,
+        $this->projectRoot.'/src',
         $cmd_line);
     }
 

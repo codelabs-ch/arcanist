@@ -10,11 +10,17 @@ final class GNATtestEngine extends ArcanistUnitTestEngine {
   public function run() {
     $projectRoot = $this->getWorkingCopy()->getProjectRoot();
 
-    echo "Cleaning '$projectRoot' before test execution ... ";
-    exec("cd $projectRoot && make clean");
-    echo "OK\n";
+    echo "Cleaning '$projectRoot' before test execution...\n";
+    exec("cd $projectRoot && make clean 2>&1", $output);
 
-    echo "Running tests ...\n";
+    echo "Running test build...\n";
+    exec('make NO_PROOF=1 2>&1', $output, $return);
+    if ($return) {
+      echo implode("\n", array_slice($output, -35))."\n\n";
+      throw new Exception("Test build of '$projectRoot' failed");
+    }
+
+    echo "Running tests...\n";
     $future = new ExecFuture('%C', 'GNATTEST_EXIT=off make tests');
     list($stdout, $stderr) = $future->resolvex();
 

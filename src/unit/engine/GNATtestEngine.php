@@ -10,11 +10,15 @@ final class GNATtestEngine extends ArcanistUnitTestEngine {
   public function run() {
     $projectRoot = $this->getWorkingCopy()->getProjectRoot();
 
+    $cpuinfo = file_get_contents('/proc/cpuinfo');
+    preg_match_all('/^processor/m', $cpuinfo, $matches);
+    $cpus = count($matches[0]);
+
     echo "Cleaning '$projectRoot' before test execution...\n";
-    exec("cd $projectRoot && make clean 2>&1", $output);
+    exec("cd $projectRoot && make -j $cpus clean 2>&1", $output);
 
     echo "Running test build...\n";
-    exec('make NO_PROOF=1 2>&1', $output, $return);
+    exec("make -j$cpus NO_PROOF=1 2>&1", $output, $return);
     if ($return) {
       echo implode("\n", array_slice($output, -35))."\n\n";
       throw new Exception("Test build of '$projectRoot' failed");

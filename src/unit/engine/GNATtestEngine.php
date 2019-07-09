@@ -53,7 +53,7 @@ final class GNATtestEngine extends ArcanistUnitTestEngine {
    */
   private function addCoverage($results) {
 
-    $cmd = 'find . -name *.gcda -exec gcov {} \; 2>&1';
+    $cmd = 'gcov `find . -name "*.gcda" | tr "\n" " " 2>&1`';
     exec($cmd, $output, $exit_status);
 
     if ($exit_status > 0) {

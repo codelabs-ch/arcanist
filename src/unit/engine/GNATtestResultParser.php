@@ -108,10 +108,12 @@ final class GNATtestResultParser {
       $bodies = glob('tools/*/src/'.$filename);
       if (empty($bodies) === false) {
         return $bodies[0];
-      } else {
-        return "";
       }
-
+      $bodies = glob('src/'.$filename);
+      if (empty($bodies) === false) {
+        return $bodies[0];
+      }
+      return "";
     }
     throw new Exception('getFilepath failed for "'.$name.'"');
   }

@@ -31,10 +31,10 @@ final class GNATtestEngine extends ArcanistUnitTestEngine {
     $parser = new GNATtestResultParser();
     $results = $parser->parseTestResults($stdout);
 
-    $future = new ExecFuture('%C', 'git diff');
+    $future = new ExecFuture('%C', 'git status --porcelain');
     list($stdout, $stderr) = $future->resolvex();
     if (!empty($stdout) || !empty($stderr)) {
-      throw new Exception('git diff detected changes after test run');
+      throw new Exception('Workdir changes detected after test run');
     }
 
     if ($this->getEnableCoverage() !== false) {

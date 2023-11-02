@@ -61,10 +61,10 @@ final class GNATtestResultParser {
     $result = new ArcanistUnitTestResult();
     $result->setResult($status);
     $result->setName($name);
-    if (strlen($data)) {
+    if (phutil_nonempty_string($data)) {
       $result->setUserData($data."\n");
     }
-    if (strlen($duration)) {
+    if (phutil_nonempty_string($duration)) {
       $result->setDuration(floatval($duration));
     }
 
@@ -149,7 +149,7 @@ final class GNATtestResultParser {
     }
 
     $result = substr($str, strpos($str, $pattern) + strlen($pattern) + 2);
-    if (!strlen($result)) {
+    if (!phutil_nonempty_string($result)) {
       throw new Exception('getReason failed for "'.$str.'"');
     }
     return $result;

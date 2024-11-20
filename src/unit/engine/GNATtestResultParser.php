@@ -22,21 +22,27 @@ final class GNATtestResultParser {
     $results = array();
     foreach(preg_split('/((\r?\n)|(\r\n?))/', $test_results) as $line) {
       if (strpos($line, 'PASSED')) {
-        $results[] = $this->createArcanistResult(
+        $r = $this->createArcanistResult(
           $this->getTestname($line), ArcanistUnitTestResult::RESULT_PASS,
           NULL, $this->getDuration($line));
+        if($r)
+          $results[] = $r;
         continue;
       }
       if (strpos($line, 'FAILED')) {
-        $results[] = $this->createArcanistResult(
+        $r = $this->createArcanistResult(
           $this->getTestname($line), ArcanistUnitTestResult::RESULT_FAIL,
           $this->getReason(false, $line), NULL);
+        if($r)
+          $results[] = $r;
         continue;
       }
       if (strpos($line, 'CRASHED')) {
-        $results[] = $this->createArcanistResult(
+        $r = $this->createArcanistResult(
           $this->getTestname($line), ArcanistUnitTestResult::RESULT_BROKEN,
           $this->getReason(true, $line), NULL);
+        if($r)
+          $results[] = $r;
         continue;
       }
     }
@@ -58,6 +64,13 @@ final class GNATtestResultParser {
    * @return ArcanistUnitTestResult
    */
   private function createArcanistResult($name, $status, $data, $duration) {
+    /* Get spec and determine if this is a file in the current git project */
+    $spec = $this->getFilepath($name, False);
+    if (!phutil_nonempty_string($spec))
+      return null;
+    if (!$this->isCheckedIn($spec))
+      return null;
+
     $result = new ArcanistUnitTestResult();
     $result->setResult($status);
     $result->setName($name);
@@ -70,7 +83,7 @@ final class GNATtestResultParser {
 
     /* Store body filename in extra data. */
     $data = array();
-    $data[0] = $this->getFilepath($name);
+    $data[0] = $this->getFilepath($name, True);
     $result->setExtraData($data);
 
     return $result;
@@ -92,20 +105,47 @@ final class GNATtestResultParser {
   }
 
   /**
-   * Return file path of source body for given testname. Raise exception if the
-   * filename could not be extracted and return empty string if the source body
-   * is not in the src directory.
+   * Check if given file is known to git.
    *
-   * @param string  $name  Name of a test
+   * @param string  $path  Path of file to check
+   *
+   * @return bool True if file is checked in
+   */
+  function isCheckedIn($path) {
+    $output = [];
+    $returnVar = 0;
+    exec("git ls-files --error-unmatch " . escapeshellarg($path) . " 2>&1", $output, $returnVar);
+    return $returnVar === 0;
+  }
+
+  /**
+   * Return glob brace string to look for Ada package bodies / specs.
+   * Only consider files in src directories (up to two-level nested).
    *
    * @return string
    */
-  private function getFilepath($name) {
-    if (preg_match('/^(.*?).ads/', $name, $filename)) {
-      $filename = str_replace('.ads', '.adb', $filename[0]);
+  private function getBrace() {
+    return "{src/,*/src/,*/*/src/}";
+  }
 
-      /* Only consider files in src directory */
-      $bodies = glob("{src/,*/src/,*/*/src/}$filename", GLOB_BRACE);
+  /**
+   * Return file path of source spec or body for given testname. Raise exception
+   * if the filename could not be extracted and return empty string if the
+   * source spec of body is not in the supported src directories
+   *
+   * @param string  $name  Name of a test
+   * @param bool    $body  Whether to look for a spec or body
+   *
+   * @return string
+   */
+  private function getFilepath($name, $body) {
+    if (preg_match('/^(.*?).ads/', $name, $filename)) {
+      if ($body)
+        $filename = str_replace('.ads', '.adb', $filename[0]);
+      else
+        $filename = $filename[0];
+      $brace = $this->getBrace();
+      $bodies = glob("$brace$filename", GLOB_BRACE);
       if (empty($bodies) === false) {
         return $bodies[0];
       }

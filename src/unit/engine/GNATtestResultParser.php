@@ -105,16 +105,7 @@ final class GNATtestResultParser {
       $filename = str_replace('.ads', '.adb', $filename[0]);
 
       /* Only consider files in src directory */
-      $bodies = glob('tools/*/src/'.$filename);
-      if (empty($bodies) === false) {
-        return $bodies[0];
-      }
-      $bodies = glob('src/'.$filename);
-      if (empty($bodies) === false) {
-        return $bodies[0];
-      }
-      /* For tools/ used via submodule */
-      $bodies = glob('*/src/'.$filename);
+      $bodies = glob("{src/,*/src/,*/*/src/}$filename", GLOB_BRACE);
       if (empty($bodies) === false) {
         return $bodies[0];
       }

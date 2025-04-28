@@ -26,7 +26,7 @@ final class PytestTestEngine extends ArcanistUnitTestEngine {
         $stderr);
     }
 
-    $future = new ExecFuture('python-coverage xml -o %s', $cover_tmp);
+    $future = new ExecFuture('coverage xml -o %s', $cover_tmp);
     $future->setCWD($this->projectRoot);
     $future->resolvex();
 
@@ -36,12 +36,11 @@ final class PytestTestEngine extends ArcanistUnitTestEngine {
   public function buildTestFuture($junit_tmp, $cover_tmp) {
     $paths = $this->getPaths();
 
-    $cmd_line = csprintf('py.test --junit-xml=%s', $junit_tmp);
+    $cmd_line = csprintf('pytest --junit-xml=%s', $junit_tmp);
 
     if ($this->getEnableCoverage() !== false) {
       $cmd_line = csprintf(
-        'python-coverage run --source %s -m %C',
-        $this->projectRoot.'/src',
+        'coverage run -m %C',
         $cmd_line);
     }
 
@@ -75,37 +74,37 @@ final class PytestTestEngine extends ArcanistUnitTestEngine {
     $paths = $this->getPaths();
     $reports = array();
     $classes = $coverage_dom->getElementsByTagName('class');
+    $sources = $coverage_dom->getElementsByTagName('source');
 
     foreach ($classes as $class) {
-      // filename is actually python module path with ".py" at the end,
-      // e.g.: tornado.web.py
-      $relative_path = explode('.', $class->getAttribute('filename'));
-      array_pop($relative_path);
-      $relative_path = implode('/', $relative_path);
+      $filename = $class->getAttribute('filename');
 
-      // first we check if the path is a directory (a Python package), if it is
-      // set relative and absolute paths to have __init__.py at the end.
-      $absolute_path = Filesystem::resolvePath($relative_path);
-      if (is_dir($absolute_path)) {
-        $relative_path .= '/__init__.py';
-        $absolute_path .= '/__init__.py';
+      // find file in given sources.
+      foreach ($sources as $source) {
+        $src_dir = $source->nodeValue;
+        $to_check = $src_dir . "/" . $filename;
+        if (file_exists($to_check)) {
+          $absolute_path = $to_check;
+          break;
+        }
       }
 
-      // then we check if the path with ".py" at the end is file (a Python
-      // submodule), if it is - set relative and absolute paths to have
-      // ".py" at the end.
-      if (is_file($absolute_path.'.py')) {
-        $relative_path .= '.py';
-        $absolute_path .= '.py';
-      }
+      if (!isset($absolute_path) || !strlen($absolute_path))
+        throw new Exception("File path for '$filename' could not be determined");
 
-      if (!file_exists($absolute_path)) {
+      if (!file_exists($absolute_path))
+        throw new Exception("Absolute path '$absolute_path' does not exist");
+
+      $in_path = False;
+      foreach ($paths as $path) {
+        if (str_ends_with($absolute_path, $path)) {
+          $in_path = True;
+          $relative_path = $path;
+          break;
+        }
+      }
+      if (!$in_path)
         continue;
-      }
-
-      if (!in_array($relative_path, $paths)) {
-        continue;
-      }
 
       // get total line count in file
       $line_count = count(file($absolute_path));

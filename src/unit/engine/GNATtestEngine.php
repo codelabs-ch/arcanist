@@ -3,7 +3,7 @@
 /**
  * Unit test engine wrapper for GNATtest.
  */
-final class GNATtestEngine extends ArcanistUnitTestEngine {
+class GNATtestEngine extends ArcanistUnitTestEngine {
 
   private $covCache = array();
 
@@ -45,6 +45,30 @@ final class GNATtestEngine extends ArcanistUnitTestEngine {
   }
 
   /**
+   * Parse given gcov file and return line information as string.
+   */
+  protected function parseGcovFile($filename) {
+    $str = '';
+    foreach (file($filename) as $gcov_line) {
+      $gcov_matches = array();
+      if (preg_match('/.*?(\S|\d+):.*?(\d+)/is', $gcov_line, $gcov_matches)
+        && $gcov_matches[2][0] > 0
+      ) {
+        if ($gcov_matches[1][0] === '#' || $gcov_matches[1][0] === '=') {
+          $str .= 'U';
+        } else if ($gcov_matches[1][0] === '-') {
+          $str .= 'N';
+        } else if ($gcov_matches[1][0] > 0) {
+          $str .= 'C';
+        } else {
+          $str .= 'N';
+        }
+      }
+    }
+    return $str;
+  }
+
+  /**
    * Read coverage report produced by gcov and add it to the test results.
    * Inspired by MobileUnitTestEngine.php, thanks to the authors.
    *
@@ -80,22 +104,7 @@ final class GNATtestEngine extends ArcanistUnitTestEngine {
           throw new Exception('Coverage file "'.$gcov_filename.'" does not exist');
         }
 
-        foreach (file($gcov_filename) as $gcov_line) {
-          $gcov_matches = array();
-          if (preg_match('/.*?(\S|\d+):.*?(\d+)/is', $gcov_line, $gcov_matches)
-            && $gcov_matches[2][0] > 0
-          ) {
-            if ($gcov_matches[1][0] === '#' || $gcov_matches[1][0] === '=') {
-              $str .= 'U';
-            } else if ($gcov_matches[1][0] === '-') {
-              $str .= 'N';
-            } else if ($gcov_matches[1][0] > 0) {
-              $str .= 'C';
-            } else {
-              $str .= 'N';
-            }
-          }
-        }
+        $str = $this->parseGcovFile($gcov_filename);
         $coverage[$path] = $str;
         $this->covCache[$path] = $str;
       }

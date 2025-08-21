@@ -1214,6 +1214,9 @@ abstract class ArcanistLandEngine
       pht('These changes will land:'));
 
     foreach ($sets as $set) {
+      if (!$this->isSquashStrategy() && count($set->getCommits()) == 1)
+        throw new PhutilArgumentUsageException(
+          pht('Use --strategy=squash for one commit.'));
       $this->printCommitSet($set);
     }
 

@@ -1439,7 +1439,8 @@ final class ArcanistGitLandEngine
       $log->writeStatus(
         pht('INTO COMMIT'),
         pht(
-          'Preparing merge into "%s" from remote "%s", at commit "%s".',
+          'Preparing %s into "%s" from remote "%s", at commit "%s".',
+          $this->isSquashStrategy() ? "squash" : "merge",
           $target->getRef(),
           $target->getRemote(),
           $api->getDisplayHash($commit)));
